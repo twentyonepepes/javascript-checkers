@@ -10,11 +10,17 @@ const isValidSquare = (x, y) => {
 	return a && b && c && d;
 }
 
+const isEndSquare = ({y}) => (isP1) => {
+
+	return (!isP1 && y === 0) || (isP1 && y === 7);
+
+}
+
 const canTake = (piece1 , piece2) => piece1.isP1 !== piece2.isP1
 
 const getValidMovesA = (pieces) => (piece)=>{
 
-	const { isP1, x, y, _id : pieceId } = piece;
+	const { isP1, x, y, _id : pieceId, isKing } = piece;
 
 	const k = isP1 ? 1 : -1;
 
@@ -28,26 +34,48 @@ const getValidMovesA = (pieces) => (piece)=>{
 	const y1 = y + (1 * k);
 	const y2 = y + (2 * k);
 
+	const ky1 = y + (-1 * k);
+	const ky2 = y + (-2 * k);
+
 	const a = f1( x1 , y1 );
 	const b = f1( x2 , y1 );
 	const c = f1( x3 , y2 );
 	const d = f1( x4 , y2 );
+
+	const ka = f1( x1 , ky1 );
+	const kb = f1( x2 , ky1 );
+	const kc = f1( x3 , ky2 );
+	const kd = f1( x4 , ky2 );
 
 	const e = isValidSquare( x1 , y1 );
 	const f = isValidSquare( x2 , y1 );
 	const g = isValidSquare( x3 , y2 );
 	const h = isValidSquare( x4 , y2 );
 
+	const ke = isValidSquare( x1 , ky1 );
+	const kf = isValidSquare( x2 , ky1 );
+	const kg = isValidSquare( x3 , ky2 );
+	const kh = isValidSquare( x4 , ky2 );
+
 	const m1 = e && !a;
 	const m2 = f && !b;
 	const m3 = g && !c && !!a && canTake(piece, a);
 	const m4 = h && !d && !!b && canTake(piece, b);
+
+	const km1 = isKing && ke && !ka;
+	const km2 = isKing && kf && !kb;
+	const km3 = isKing && kg && !kc && !!ka && canTake(piece, ka);
+	const km4 = isKing && kh && !kd && !!kb && canTake(piece, kb);
 
 	const ms1 = [
 		{ _id : `${pieceId}-M1`, possible : m1 , toX : x1, toY : y1, taken : null, pieceId },
 		{ _id : `${pieceId}-M2`, possible : m2 , toX : x2, toY : y1, taken : null, pieceId},
 		{ _id : `${pieceId}-M3`, possible : m3 , toX : x3, toY : y2, taken : a && a._id || null, pieceId },
 		{ _id : `${pieceId}-M4`, possible : m4 , toX : x4, toY : y2, taken : b && b._id || null, pieceId },
+		{ _id : `${pieceId}-KM1`, possible : km1 , toX : x1, toY : ky1, taken : null, pieceId },
+		{ _id : `${pieceId}-KM2`, possible : km2 , toX : x2, toY : ky1, taken : null, pieceId},
+		{ _id : `${pieceId}-KM3`, possible : km3 , toX : x3, toY : ky2, taken : ka && ka._id || null, pieceId },
+		{ _id : `${pieceId}-KM4`, possible : km4 , toX : x4, toY : ky2, taken : kb && kb._id || null, pieceId },
 	];
 
 	const ms2 = ms1.filter(move => move.possible);
@@ -77,13 +105,14 @@ const getMoveIndex = (pieces) => (isP1) => {
 const nextState = (state) => (move) => {
 
 	const { taken, pieceId, toX, toY } = move;
-	const { isP1Turn } = state;
-	const b = state.pieces.filter(piece => piece._id !== taken);
+	const { isP1Turn, pieces } = state;
+	const b = pieces.filter(piece => piece._id !== taken);
 	const c = b.map(piece => {
 
 		if (piece._id === pieceId) {
 
-			return { ... piece, x : toX, y : toY }
+			const kingMe = isEndSquare({y:toY})(piece.isP1);
+			return { ... piece, x : toX, y : toY, isKing : piece.isKing || kingMe }
 
 		} else {
 
@@ -93,11 +122,9 @@ const nextState = (state) => (move) => {
 
 	});
 
-	const followup = taken && getMoveIndex(c)(isP1Turn).some(move => move.taken && move.pieceId === pieceId);
-	// const followup = false;
-
+	const g = getMoveIndex(c)(isP1Turn).some(move => move.taken && move.pieceId === pieceId);
+	const followup = taken && g;
 	const nextTurnIsP1Turn = followup ? isP1Turn : !isP1Turn;
-	// const nextTurnIsP1Turn = !isP1Turn;
 	const nextMoves = getMoveIndex(c)(nextTurnIsP1Turn)
 
 	return {
@@ -108,31 +135,13 @@ const nextState = (state) => (move) => {
 	}
 }
 
-const pieces = [
-	{ _id : "BL0", x : 3, y: 3, isP1 : true, isKing : false },
-	{ _id : "BL1", x : 2, y: 0, isP1 : true, isKing : false },
-	{ _id : "BL2", x : 4, y: 0, isP1 : true, isKing : false },
-	{ _id : "BL3", x : 6, y: 0, isP1 : true, isKing : false },
-	{ _id : "BL4", x : 1, y: 1, isP1 : true, isKing : false },
-	{ _id : "BL5", x : 3, y: 1, isP1 : true, isKing : false },
-	{ _id : "BL6", x : 5, y: 1, isP1 : true, isKing : false },
-	{ _id : "BL7", x : 7, y: 1, isP1 : true, isKing : false },
-	{ _id : "WH0", x : 4, y: 4, isP1 : false, isKing : false },
-	{ _id : "WH1", x : 3, y: 7, isP1 : false, isKing : false },
-	{ _id : "WH2", x : 5, y: 7, isP1 : false, isKing : false },
-	{ _id : "WH3", x : 7, y: 7, isP1 : false, isKing : false },
-	{ _id : "WH4", x : 0, y: 6, isP1 : false, isKing : false },
-	{ _id : "WH5", x : 2, y: 6, isP1 : false, isKing : false },
-	{ _id : "WH6", x : 4, y: 6, isP1 : false, isKing : false },
-	{ _id : "WH7", x : 6, y: 6, isP1 : false, isKing : false }
-];
 
 const isP1Turn = false;
-const moves = getMoveIndex(pieces)(isP1Turn)
+const moves = getMoveIndex(defaultPieces)(isP1Turn)
 let state = {
 	
 	isP1Turn,
 	moves,
-	pieces
+	pieces : defaultPieces
 }
 

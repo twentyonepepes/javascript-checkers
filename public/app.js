@@ -30,8 +30,8 @@ function render() {
 
 	for (const piece of state.pieces) {
 
-		const { x, y, isP1, _id } = piece;
-		board += `<div class="piece" style="top: ${y * 100}; left: ${x * 100}; background-color: ${isP1 ? "black" : "white"}"></div>`
+		const { x, y, isP1, _id, isKing } = piece;
+		board += `<div class="piece" style="top: ${y * 100}; left: ${x * 100}; background-color: ${isP1 ? "black" : "white"}"><span>${isKing ? "K": ""}</span></div>`
 
 	}
 
@@ -41,7 +41,7 @@ function render() {
 	
 	for (const piece of activePieces) {
 
-		const { x, y, _id } = piece;
+		const { x, y, _id, isKing } = piece;
 		board += `<div class="interactable-piece" onClick="handlePieceInteract('${_id}')" style="top: ${y * 100}; left: ${x * 100};"></div>`
 
 	}
